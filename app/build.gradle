@@ -1,34 +1,120 @@
-apply plugin: 'com.android.application'
+import dependencies.Dep
+import dependencies.Versions
 
-apply plugin: 'kotlin-android'
-
-apply plugin: 'kotlin-android-extensions'
+apply plugin: Dep.Plugin.android
+apply plugin: Dep.Plugin.kotlin
+apply plugin: Dep.Plugin.kotlinExtensions
+apply plugin: Dep.Plugin.kotlinKapt
+apply plugin: Dep.Plugin.navigation
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion Versions.androidCompileSdkVersion
     defaultConfig {
         applicationId "jp.co.tsuka.androidproject2019"
-        minSdkVersion 21
-        targetSdkVersion 28
-        versionCode 1
-        versionName "1.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        minSdkVersion Versions.androidMinSdkVersion
+        targetSdkVersion Versions.androidCompileSdkVersion
+        versionCode Versions.androidVersionCode
+        versionName Versions.androidVersionName
+        testInstrumentationRunner Dep.GradlePlugin.testInstrumentationRunner
+    }
+    Properties properties = new Properties()
+    properties.load(project.rootProject.file('local.properties').newDataInputStream())
+    signingConfigs {
+        keystore {
+            storeFile file('./keystore')
+            storePassword properties.getProperty("RELEASE_STORE_PASSWORD")
+            keyAlias properties.getProperty("RELEASE_KEY_ALIAS")
+            keyPassword properties.getProperty("RELEASE_KEY_PASSWORD")
+        }
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.keystore
         }
+    }
+    flavorDimensions "environment"
+    productFlavors {
+        develop {
+            buildConfigField("String", "BASE_URL", "\"https://www.google.com\"")
+            applicationId 'jp.co.tsuka.androidproject2019.develop'
+        }
+        staging {
+            buildConfigField("String", "BASE_URL", "\"https://www.google.com\"")
+            applicationId 'jp.co.tsuka.androidproject2019.staging'
+        }
+        prod {
+            buildConfigField("String", "BASE_URL", "\"https://www.google.com\"")
+            applicationId 'jp.co.tsuka.androidproject2019'
+        }
+    }
+    dataBinding {
+        enabled = true
+    }
+    // Add the following configuration in order to target Java 8.
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
+configurations {
+    ktlint
+}
+
+dependencies {
+    ktlint Dep.ktlint
+}
+
+task ktlint(type: JavaExec, group: "verification") {
+    description = "Check Kotlin code style."
+    classpath = configurations.ktlint
+    main = "com.github.shyiko.ktlint.Main"
+    args "--android", "--color", "--reporter=plain", "--reporter=checkstyle,output=${buildDir}/reports/ktlint-results.xml", "src/**/*.kt"
+    ignoreExitValue true
+}
+check.dependsOn ktlint
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'androidx.appcompat:appcompat:1.0.0-beta01'
-    implementation 'androidx.core:core-ktx:1.2.0-rc01'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test:runner:1.1.0-alpha4'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.0-alpha4'
+    implementation Dep.Kotlin.stdlibJvm
+
+    // ==== AndroidJetpack ====
+    implementation Dep.AndroidX.appCompat
+    implementation Dep.AndroidX.core
+    implementation Dep.AndroidX.constraint
+
+    // ==== arch ====
+    implementation Dep.Arch.core
+    implementation Dep.Arch.extensions
+    kapt Dep.Arch.compiler
+
+    // ==== Firebase ====
+    implementation Dep.Firebase.core
+
+    // ==== dagger2 ====
+    implementation Dep.Dagger.core
+    kapt Dep.Dagger.compiler
+    implementation Dep.Dagger.android
+    implementation Dep.Dagger.androidSupport
+    kapt Dep.Dagger.androidProcessor
+
+    // ==== RxAndroid ====
+    implementation Dep.RxAndroid.rxjava
+    implementation Dep.RxAndroid.rxandroid
+
+    // ==== Retrofit ====
+    implementation Dep.Retrofit2.retrofit
+    implementation Dep.Retrofit2.gson
+    implementation Dep.Retrofit2.adapter
+
+    // ==== OkHttp ====
+    implementation Dep.OkHttp.client
+    implementation Dep.OkHttp.loggingInterceptor
+
+    // ==== UnitTest ====
+    testImplementation Dep.Test.junit
+    androidTestImplementation Dep.Test.testRunner
+    androidTestImplementation Dep.Test.espressoCore
 }

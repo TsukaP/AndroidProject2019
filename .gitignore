@@ -8,6 +8,8 @@
 !/.idea/icon_dark.png
 .DS_Store
 /build
+/buildSrc/.gradle
+/buildSrc/build
 /captures
 .externalNativeBuild
 
